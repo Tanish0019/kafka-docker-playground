@@ -10,7 +10,6 @@ N.B: if you're a Confluent employee, please check this [link](https://confluent.
 
 Download Oracle Database 21c (21.3) for Linux x86-64 `LINUX.X64_213000_db_home.zip`from this [page](https://www.oracle.com/database/technologies/oracle21c-linux-downloads.html) and place it in `./LINUX.X64_213000_db_home.zip`
 
-
 Note: The first time you'll run the script, it will build (using this [project](https://github.com/oracle/docker-images/blob/master/OracleDatabase/SingleInstance/README.md)) the docker image `oracle/database:21.3.0-ee`. It takes about 10 minutes.
 
 **Please make sure to increase Docker disk image size (96Gb is known to be working)**:
@@ -19,7 +18,7 @@ Note: The first time you'll run the script, it will build (using this [project](
 
 ## Note on `redo.log.row.fetch.size`
 
-The connector is configured with `"redo.log.row.fetch.size":1` for demo purpose only. 
+The connector is configured with `"redo.log.row.fetch.size":1` for demo purpose only.
 If you're planning to inject more data, it is recommended to increase the value.
 
 You can set environment variable `SQL_DATAGEN` before running the example and it will use a Java based datagen tool:
@@ -79,7 +78,6 @@ $ playground run -f cdc-oracle21-cdb-table-mtls-db-auth<tab>
 ```
 
 N.B: `./cdc-oracle21-pdb-table-mtls-db-auth.sh` does not work, see [Oracle CDC: mTLS with DB authentication cannot work with PDB](https://github.com/vdesabou/kafka-docker-playground/issues/833)
-
 
 N.B: this is the [best resource](https://www.oracle.com/technetwork/topics/wp-oracle-jdbc-thin-ssl-130128.pdf) I found for Oracle DB and SSL.
 
@@ -207,14 +205,108 @@ The above records was present before the connector startup thus the operation ty
 Once started, the connector captures the new database changes and stream them into 2 topics:
 
 The "table topic" like `ORCLPDB1.C__MYUSER.CUSTOMERS`
+
 ```json
-{"ID":"*","FIRST_NAME":{"string":"Frantz"},"LAST_NAME":{"string":"Kafka"},"EMAIL":{"string":"fkafka@confluent.io"},"GENDER":{"string":"Male"},"CLUB_STATUS":{"string":"gold"},"COMMENTS":{"string":"Evil is whatever distracts"},"CREATE_TS":{"long":1619473009476},"UPDATE_TS":{"long":1619473009000},"table":{"string":"ORCLCDB.C##MYUSER.CUSTOMERS"},"scn":{"string":"1449894"},"op_type":{"string":"U"},"op_ts":{"string":"1619473009000"},"current_ts":{"string":"1619473012136"},"row_id":{"string":"AAAR9TAAHAAAACGAAA"},"username":{"string":"C##MYUSER"}}
+{
+  "ID": "*",
+  "FIRST_NAME": { "string": "Frantz" },
+  "LAST_NAME": { "string": "Kafka" },
+  "EMAIL": { "string": "fkafka@confluent.io" },
+  "GENDER": { "string": "Male" },
+  "CLUB_STATUS": { "string": "gold" },
+  "COMMENTS": { "string": "Evil is whatever distracts" },
+  "CREATE_TS": { "long": 1619473009476 },
+  "UPDATE_TS": { "long": 1619473009000 },
+  "table": { "string": "ORCLCDB.C##MYUSER.CUSTOMERS" },
+  "scn": { "string": "1449894" },
+  "op_type": { "string": "U" },
+  "op_ts": { "string": "1619473009000" },
+  "current_ts": { "string": "1619473012136" },
+  "row_id": { "string": "AAAR9TAAHAAAACGAAA" },
+  "username": { "string": "C##MYUSER" }
+}
 ```
+
 The above event represent the state of the database record after being updated. It captures also some metadata which is not present in the refresh event like scn, operation timestamp, username, etc.
 
 The "technical" event is present in the `redo-log-topic`
+
 ```json
-{"SCN":{"long":1448360},"START_SCN":{"long":1448360},"COMMIT_SCN":{"long":1448361},"TIMESTAMP":{"long":1619524688000},"START_TIMESTAMP":{"long":1619524688000},"COMMIT_TIMESTAMP":{"long":1619524688000},"XIDUSN":{"long":8},"XIDSLT":{"long":8},"XIDSQN":{"long":725},"XID":{"bytes":"\b\u0000\b\u0000Õ\u0002\u0000\u0000"},"PXIDUSN":{"long":8},"PXIDSLT":{"long":8},"PXIDSQN":{"long":725},"PXID":{"bytes":"\b\u0000\b\u0000Õ\u0002\u0000\u0000"},"TX_NAME":null,"OPERATION":{"string":"UPDATE"},"OPERATION_CODE":{"int":3},"ROLLBACK":{"boolean":false},"SEG_OWNER":{"string":"C##MYUSER"},"SEG_NAME":{"string":"CUSTOMERS"},"TABLE_NAME":{"string":"CUSTOMERS"},"SEG_TYPE":{"int":2},"SEG_TYPE_NAME":{"string":"TABLE"},"TABLE_SPACE":{"string":"USERS"},"ROW_ID":{"string":"AAAR9TAAHAAAACHAAF"},"USERNAME":{"string":"C##MYUSER"},"OS_USERNAME":{"string":"oracle"},"MACHINE_NAME":{"string":"oracle"},"AUDIT_SESSIONID":{"long":90002},"SESSION_NUM":{"long":867},"SERIAL_NUM":{"long":29292},"SESSION_INFO":{"string":"login_username=C##MYUSER client_info= OS_username=oracle Machine_name=oracle OS_terminal= OS_process_id=3211 OS_program_name=sqlplus@oracle (TNS V1-V3)"},"THREAD_NUM":{"long":1},"SEQUENCE_NUM":{"long":3},"RBASQN":{"long":2},"RBABLK":{"long":192144},"RBABYTE":{"long":100},"UBAFIL":{"long":4},"UBABLK":{"long":16783950},"UBAREC":{"long":36},"UBASQN":{"long":218},"ABS_FILE_NUM":{"long":4},"REL_FILE_NUM":{"long":7},"DATA_BLK_NUM":{"long":135},"DATA_OBJ_NUM":{"long":73555},"DATA_OBJV_NUM":{"long":1},"DATA_OBJD_NUM":{"long":73555},"SQL_REDO":{"string":"update \"C##MYUSER\".\"CUSTOMERS\" set \"CLUB_STATUS\" = 'gold', \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') where \"ID\" = '42' and \"FIRST_NAME\" = 'Frantz' and \"LAST_NAME\" = 'Kafka' and \"EMAIL\" = 'fkafka@confluent.io' and \"GENDER\" = 'Male' and \"CLUB_STATUS\" = 'bronze' and \"COMMENTS\" = 'Evil is whatever distracts' and \"CREATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.678') and \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') and ROWID = 'AAAR9TAAHAAAACHAAF';"},"SQL_UNDO":{"string":"update \"C##MYUSER\".\"CUSTOMERS\" set \"CLUB_STATUS\" = 'bronze', \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') where \"ID\" = '42' and \"FIRST_NAME\" = 'Frantz' and \"LAST_NAME\" = 'Kafka' and \"EMAIL\" = 'fkafka@confluent.io' and \"GENDER\" = 'Male' and \"CLUB_STATUS\" = 'gold' and \"COMMENTS\" = 'Evil is whatever distracts' and \"CREATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.678') and \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') and ROWID = 'AAAR9TAAHAAAACHAAF';"},"RS_ID":{"string":" 0x000002.0002ee90.0064 "},"SSN":{"long":0},"CSF":{"boolean":false},"INFO":null,"STATUS":{"int":0},"REDO_VALUE":{"long":298},"UNDO_VALUE":{"long":299},"SAFE_RESUME_SCN":{"long":0},"CSCN":{"long":1448361},"OBJECT_ID":null,"EDITION_NAME":null,"CLIENT_ID":null,"SRC_CON_NAME":{"string":"CDB$ROOT"},"SRC_CON_ID":{"long":1},"SRC_CON_UID":{"long":1},"SRC_CON_DBID":{"long":0},"SRC_CON_GUID":null,"CON_ID":{"boolean":false}}
+{
+  "SCN": { "long": 1448360 },
+  "START_SCN": { "long": 1448360 },
+  "COMMIT_SCN": { "long": 1448361 },
+  "TIMESTAMP": { "long": 1619524688000 },
+  "START_TIMESTAMP": { "long": 1619524688000 },
+  "COMMIT_TIMESTAMP": { "long": 1619524688000 },
+  "XIDUSN": { "long": 8 },
+  "XIDSLT": { "long": 8 },
+  "XIDSQN": { "long": 725 },
+  "XID": { "bytes": "\b\u0000\b\u0000Õ\u0002\u0000\u0000" },
+  "PXIDUSN": { "long": 8 },
+  "PXIDSLT": { "long": 8 },
+  "PXIDSQN": { "long": 725 },
+  "PXID": { "bytes": "\b\u0000\b\u0000Õ\u0002\u0000\u0000" },
+  "TX_NAME": null,
+  "OPERATION": { "string": "UPDATE" },
+  "OPERATION_CODE": { "int": 3 },
+  "ROLLBACK": { "boolean": false },
+  "SEG_OWNER": { "string": "C##MYUSER" },
+  "SEG_NAME": { "string": "CUSTOMERS" },
+  "TABLE_NAME": { "string": "CUSTOMERS" },
+  "SEG_TYPE": { "int": 2 },
+  "SEG_TYPE_NAME": { "string": "TABLE" },
+  "TABLE_SPACE": { "string": "USERS" },
+  "ROW_ID": { "string": "AAAR9TAAHAAAACHAAF" },
+  "USERNAME": { "string": "C##MYUSER" },
+  "OS_USERNAME": { "string": "oracle" },
+  "MACHINE_NAME": { "string": "oracle" },
+  "AUDIT_SESSIONID": { "long": 90002 },
+  "SESSION_NUM": { "long": 867 },
+  "SERIAL_NUM": { "long": 29292 },
+  "SESSION_INFO": {
+    "string": "login_username=C##MYUSER client_info= OS_username=oracle Machine_name=oracle OS_terminal= OS_process_id=3211 OS_program_name=sqlplus@oracle (TNS V1-V3)"
+  },
+  "THREAD_NUM": { "long": 1 },
+  "SEQUENCE_NUM": { "long": 3 },
+  "RBASQN": { "long": 2 },
+  "RBABLK": { "long": 192144 },
+  "RBABYTE": { "long": 100 },
+  "UBAFIL": { "long": 4 },
+  "UBABLK": { "long": 16783950 },
+  "UBAREC": { "long": 36 },
+  "UBASQN": { "long": 218 },
+  "ABS_FILE_NUM": { "long": 4 },
+  "REL_FILE_NUM": { "long": 7 },
+  "DATA_BLK_NUM": { "long": 135 },
+  "DATA_OBJ_NUM": { "long": 73555 },
+  "DATA_OBJV_NUM": { "long": 1 },
+  "DATA_OBJD_NUM": { "long": 73555 },
+  "SQL_REDO": {
+    "string": "update \"C##MYUSER\".\"CUSTOMERS\" set \"CLUB_STATUS\" = 'gold', \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') where \"ID\" = '42' and \"FIRST_NAME\" = 'Frantz' and \"LAST_NAME\" = 'Kafka' and \"EMAIL\" = 'fkafka@confluent.io' and \"GENDER\" = 'Male' and \"CLUB_STATUS\" = 'bronze' and \"COMMENTS\" = 'Evil is whatever distracts' and \"CREATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.678') and \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') and ROWID = 'AAAR9TAAHAAAACHAAF';"
+  },
+  "SQL_UNDO": {
+    "string": "update \"C##MYUSER\".\"CUSTOMERS\" set \"CLUB_STATUS\" = 'bronze', \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') where \"ID\" = '42' and \"FIRST_NAME\" = 'Frantz' and \"LAST_NAME\" = 'Kafka' and \"EMAIL\" = 'fkafka@confluent.io' and \"GENDER\" = 'Male' and \"CLUB_STATUS\" = 'gold' and \"COMMENTS\" = 'Evil is whatever distracts' and \"CREATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.678') and \"UPDATE_TS\" = TO_TIMESTAMP('2021-04-27 11:58:07.000') and ROWID = 'AAAR9TAAHAAAACHAAF';"
+  },
+  "RS_ID": { "string": " 0x000002.0002ee90.0064 " },
+  "SSN": { "long": 0 },
+  "CSF": { "boolean": false },
+  "INFO": null,
+  "STATUS": { "int": 0 },
+  "REDO_VALUE": { "long": 298 },
+  "UNDO_VALUE": { "long": 299 },
+  "SAFE_RESUME_SCN": { "long": 0 },
+  "CSCN": { "long": 1448361 },
+  "OBJECT_ID": null,
+  "EDITION_NAME": null,
+  "CLIENT_ID": null,
+  "SRC_CON_NAME": { "string": "CDB$ROOT" },
+  "SRC_CON_ID": { "long": 1 },
+  "SRC_CON_UID": { "long": 1 },
+  "SRC_CON_DBID": { "long": 0 },
+  "SRC_CON_GUID": null,
+  "CON_ID": { "boolean": false }
+}
 ```
 
 ### With SSL encryption
@@ -260,7 +352,6 @@ $ keytool -import -v -alias testroot -file /tmp/b64certificate.txt -keystore /tm
 log "Displaying truststore"
 $ keytool -list -keystore /tmp/truststore.jks -storepass 'welcome123' -v
 ```
-
 
 Oracle DB is updated to use new `.ora` files, with TCPS config:
 
@@ -362,7 +453,6 @@ $ keytool -list -keystore /tmp/keystore.jks -storepass 'welcome123' -v
 
 `.ora` files are same as before except that we set `SSL_CLIENT_AUTHENTICATION = TRUE` and TCPS as authentication `SQLNET.AUTHENTICATION_SERVICES = (TCPS,NTS,BEQ)`.
 
-
 `oracle.port` is set to SSL listener port and we set `oracle.connection.javax.net.ssl.keyStore`:
 
 ```json
@@ -374,6 +464,7 @@ $ keytool -list -keystore /tmp/keystore.jks -storepass 'welcome123' -v
 "oracle.connection.javax.net.ssl.keyStore": "/tmp/keystore.jks",
 "oracle.connection.javax.net.ssl.keyStorePassword": "welcome123",
 ```
+
 ### With SSL encryption + Mutual TLS + DB authentication (case #4 in this [document](https://www.oracle.com/technetwork/database/enterprise-edition/wp-oracle-jdbc-thin-ssl-130128.pdf)
 
 `oracle.port` is set to SSL listener port and we set `oracle.connection.javax.net.ssl.keyStore` and `"connection.oracle.net.authentication_services": "(TCPS)"`:
@@ -392,7 +483,7 @@ N.B: `oracle.username` and `oracle.password` are not set.
 We also need to alter user `C##MYUSER` in order to be identified as `CN=connect,C=US`
 
 ```bash
-$ docker exec -i oracle sqlplus sys/Admin123@//localhost:1521/ORCLCDB as sysdba <<- EOF
+$ docker exec -i oracle sqlplus sys/secret@//localhost:1521/ORCLCDB as sysdba <<- EOF
 	ALTER USER C##MYUSER IDENTIFIED EXTERNALLY AS 'CN=connect,C=US';
 	exit;
 EOF

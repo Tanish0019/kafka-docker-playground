@@ -7,7 +7,7 @@ ORACLE_SID=ORCLCDB
 export ORACLE_SID
 
 sqlplus /nolog <<- EOF
-	CONNECT sys/Admin123 AS SYSDBA
+	CONNECT sys/secret AS SYSDBA
 	-- Turn on Archivelog Mode
 	SHUTDOWN IMMEDIATE
 	STARTUP MOUNT

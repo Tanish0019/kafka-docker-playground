@@ -28,7 +28,7 @@ done
 log "Oracle DB has started!"
 log "Setting up Oracle Database Prerequisites"
 docker exec -i oracle bash -c "ORACLE_SID=ORCLCDB;export ORACLE_SID;sqlplus /nolog" << EOF
-     CONNECT sys/Admin123 AS SYSDBA
+     CONNECT sys/secret AS SYSDBA
      CREATE ROLE C##CDC_PRIVS;
      GRANT CREATE SESSION TO C##CDC_PRIVS;
      GRANT EXECUTE ON SYS.DBMS_LOGMNR TO C##CDC_PRIVS;
